@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: SRM
+  jpa:
+    show-sql: false
+
+server:
+  name: Advantech SRM API server
+  port: 8080
+  servlet:
+    context-path: /SRM
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: OFF
+        type:
+          descriptor:
+            sql:
+              BasicBinder: OFF

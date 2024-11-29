@@ -1,0 +1,13 @@
+package com.advantech.srm.vendor.service;
+
+import com.advantech.srm.persistence.repository.VendorMasterRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+public class VendorService {
+    @Autowired
+    private VendorMasterRepository vendorMasterRepository;
+
+    public 
+}

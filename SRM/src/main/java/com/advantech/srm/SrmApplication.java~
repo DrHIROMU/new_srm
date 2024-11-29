@@ -1,0 +1,17 @@
+package com.advantech.srm;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
+
+@EnableAutoConfiguration
+@ComponentScan(basePackages = { "com.advantech.srm.*" })
+@SpringBootApplication
+public class SrmApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(SrmApplication.class, args);
+	}
+
+}

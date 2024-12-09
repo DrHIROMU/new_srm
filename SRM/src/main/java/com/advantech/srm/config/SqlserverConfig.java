@@ -17,17 +17,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 
-//@Configuration
-//@EnableTransactionManagement
-//@PropertySource(value = {"classpath:persistence.properties", "classpath:persistence-${spring.profiles.active}.properties"}
-//        , encoding = "utf-8"
-//        , ignoreResourceNotFound = true)
-//@EntityScan(basePackages = "com.advantech.srm.persistence.model")
-//@EnableJpaRepositories(entityManagerFactoryRef = "sqlserverEntityManagerFactory"
-//        , transactionManagerRef = "sqlserverTransactionManager"
-//        , basePackages = {"com.advantech.srm.persistence.repository"})
-
-
 @Configuration
 @PropertySource(value = {"classpath:persistence.properties", "classpath:persistence-${spring.profiles.active}.properties"}
         , encoding = "utf-8"

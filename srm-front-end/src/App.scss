@@ -1,0 +1,36 @@
+.query-condition {
+  border: 3px solid #4d688b;
+  padding: 20px;
+
+  .field-row {
+    display: flex;
+
+    .input-field {
+      margin-bottom: 20px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      label {
+        flex: 1;
+      }
+
+      input {
+        flex: 1;
+        margin-right: 20px;
+      }
+
+      select {
+        flex: 1;
+        margin-right: 20px;
+      }
+    }
+  }
+}
+
+.button-row {
+  display: flex;
+  button {
+    flex: 1;
+  }
+}

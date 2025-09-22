@@ -1,0 +1,107 @@
+networks:
+  cicd_net:
+    driver: bridge
+
+volumes:
+  jenkins-data:
+  nexus-data:
+  gitea-data:
+  gitea-pg-data:
+
+services:
+  # === PostgreSQL for Gitea ===
+  gitea-pg:
+    image: postgres:16-alpine
+    container_name: gitea-pg
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${GITEA_DB_NAME}
+      - POSTGRES_USER=${GITEA_DB_USER}
+      - POSTGRES_PASSWORD=${GITEA_DB_PASS}
+      - TZ=${TZ}
+    volumes:
+      - gitea-pg-data:/var/lib/postgresql/data
+    networks: [cicd_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GITEA_DB_USER} -d ${GITEA_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    restart: unless-stopped
+    depends_on:
+      gitea-pg:
+        condition: service_healthy
+    environment:
+      - TZ=${TZ}
+      # ---- 關鍵 DB 設定 ----
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=gitea-pg:5432
+      - GITEA__database__NAME=${GITEA_DB_NAME}
+      - GITEA__database__USER=${GITEA_DB_USER}
+      - GITEA__database__PASSWD=${GITEA_DB_PASS}
+      - GITEA__database__SSL_MODE=disable
+      - GITEA__database__LOG_SQL=false
+      # ---- Web/SSH 外部 URL 設定 ----
+      - GITEA__server__ROOT_URL=${GITEA_ROOT_URL}
+      - GITEA__server__SSH_DOMAIN=${GITEA_SSH_DOMAIN}
+      - GITEA__server__SSH_PORT=${GITEA_SSH_PORT}
+      - GITEA__server__SSH_LISTEN_PORT=${GITEA_SSH_PORT}     
+      - GITEA__server__START_SSH_SERVER=true
+    volumes:
+      - gitea-data:/data
+    ports:
+      - "${GITEA_HTTP_PORT}:3000"
+      - "${GITEA_SSH_BIND}:2222"
+    networks: [cicd_net]
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: jenkins
+    restart: unless-stopped
+    user: "0:0"    # 初次避免權限問題，穩定後可改非 root
+    environment:
+      - TZ=${TZ}
+      - JAVA_OPTS=-Duser.timezone=${TZ}
+      # >>> 關鍵：改用 Docker Remote API (Windows Docker Desktop)
+      - DOCKER_HOST=tcp://host.docker.internal:2375
+      # 若你 Docker Desktop 有啟用 TLS，改成：
+      # - DOCKER_HOST=tcp://host.docker.internal:2376
+      # - DOCKER_TLS_VERIFY=1
+      # - DOCKER_CERT_PATH=/jenkins-docker-certs
+    ports:
+      - "${JENKINS_HTTP_PORT}:8080"
+      - "${JENKINS_AGENT_PORT}:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      # **已移除**：/var/run/docker.sock:/var/run/docker.sock
+      # 若你是啟用 TLS，可把憑證掛進來（對應上面的 DOCKER_CERT_PATH）
+      # - ./docker-certs:/jenkins-docker-certs:ro
+    networks: [cicd_net]
+    # （可選）健康檢查
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/login || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: nexus
+    restart: unless-stopped
+    ports:
+      - "${NEXUS_HTTP_PORT}:8081"
+      - "5000:5000"
+    volumes:
+      - nexus-data:/nexus-data
+    networks: [cicd_net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 40s

@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -18,39 +19,27 @@ import java.time.Instant;
 @Entity
 @Table(name = "user_accounts", schema = "account")
 public class UserAccount extends AuditableEntity {
-    @Column(length = 100)
+    @Column(name = "email", length = 200, nullable = false)
     private String email;
 
-    @Column(name = "password_hash", length = 256, nullable = false)
-    private byte[] passwordHash;
-
-    @Column(length = 50)
+    @Column(name = "name", length = 100)
     private String name;
 
-    @Column(name = "account_type", length = 20)
-    private String accountType;
+    @Column(name = "password_hash", length = 200)
+    private byte[] passwordHash;
 
-    @Column(length = 20)
-    private String status;
+    @Column(name = "ez_row_id", length = 50)
+    private String ezRowId;
 
-    @Column(name = "vendor_code", length = 10)
-    private String vendorCode;
+    @Column(name = "account_status", length = 20, nullable = false)
+    private String accountStatus;
 
-    @Column(name = "ez_id", length = 36, nullable = false)
-    private String ezId;
-
-    @Column(name = "login_fail_count", nullable = false)
-    private int loginFailCount = 0;
-
-    @Column(name = "last_failed_login_time")
-    private Instant lastFailedLoginTime;
-
-    @Column(name = "last_password_changed_time")
-    private Instant lastPasswordChangedTime;
+    @Column(name = "failed_attempts", nullable = false)
+    private Integer failedAttempts = 0;
 
     @Column(name = "last_login_time")
     private Instant lastLoginTime;
 
-    @Column(name = "last_logout_time")
-    private Instant lastLogoutTime;
+    @Column(name = "password_updated_time", nullable = false)
+    private Instant passwordUpdatedTime;
 }

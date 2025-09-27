@@ -1,5 +1,5 @@
 services:
-  app:
+  srm-api:
     build:
       context: ../../back-end/srm
       dockerfile: ./srm-api/Dockerfile
@@ -12,27 +12,8 @@ services:
       - "8080:8080"
     networks:
       - backend
-  db:
-    image: postgres:latest
-    container_name: srm-postgres
-    environment:
-      POSTGRES_DB: srm
-      POSTGRES_USER: srm
-      POSTGRES_PASSWORD: srm2025
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - backend
 
 volumes:
-  db_data:
   gradle_cache:
 
 networks:

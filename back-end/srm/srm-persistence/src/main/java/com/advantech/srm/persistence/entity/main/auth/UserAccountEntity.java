@@ -1,4 +1,4 @@
-package com.advantech.srm.persistence.entity.main.account;
+package com.advantech.srm.persistence.entity.main.auth;
 
 import com.advantech.srm.persistence.entity.main.AuditableEntity;
 import jakarta.persistence.Column;
@@ -10,15 +10,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "user_accounts", schema = "account")
-public class UserAccount extends AuditableEntity {
+@Table(name = "user_accounts", schema = "auth")
+public class UserAccountEntity extends AuditableEntity {
     @Column(name = "email", length = 200, nullable = false)
     private String email;
 

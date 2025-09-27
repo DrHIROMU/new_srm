@@ -1,3 +1,15 @@
 spring:
   application:
     name: srm-api
+
+srm:
+  auth:
+    internal-soap:
+      endpoint: http://localhost:8080/ws/authenticate
+      soap-action: AuthenticateUser
+      success-xpath: "//*[local-name()='IsAuthenticated']/text()"
+      success-value: "true"
+      display-name-xpath: "//*[local-name()='DisplayName']/text()"
+      message-xpath: "//*[local-name()='Message']/text()"
+      connect-timeout: 5s
+      read-timeout: 5s

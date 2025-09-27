@@ -1,7 +1,7 @@
 package com.advantech.srm.api.account.controller;
 
 import com.advantech.srm.api.account.service.UserAccountService;
-import com.advantech.srm.persistence.entity.main.account.UserAccount;
+import com.advantech.srm.persistence.entity.main.auth.UserAccountEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,7 +15,7 @@ public class UserAccountController {
     private UserAccountService userAccountService;
 
     @GetMapping("/user-accounts/{email}")
-    public UserAccount findByEmail(@PathVariable String email) {
+    public UserAccountEntity findByEmail(@PathVariable String email) {
         return userAccountService.findByEmail(email);
     }
 }

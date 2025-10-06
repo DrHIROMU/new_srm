@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -11,11 +11,9 @@ repositories {
 }
 
 dependencies {
-    implementation project(':srm-domain')
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation("org.postgresql:postgresql:42.7.4")
+    // This module should have minimal dependencies.
+    // Add any truly core libraries if needed, for example, Lombok.
     compileOnly 'org.projectlombok:lombok'
-    runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc'
     annotationProcessor 'org.projectlombok:lombok'
 }
 

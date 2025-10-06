@@ -32,9 +32,10 @@ public class SupplierAuthenticationProvider implements AuthenticationProvider {
             return null;
         }
 
-        UserAccountEntity user = userAccountRepository.findByEmail(username)
-                .orElseThrow(() -> new BadCredentialsException("User not found"));
-
+        UserAccountEntity user = userAccountRepository.findByEmail(username);
+        if(user == null) {
+            throw new BadCredentialsException("User not found");
+        }
         if (passwordEncoder.matches(password, new String(user.getPasswordHash()))) {
             // For simplicity, grant a single 'SUPPLIER' role.
             return new UsernamePasswordAuthenticationToken(

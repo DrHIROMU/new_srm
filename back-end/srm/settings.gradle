@@ -1,2 +1,2 @@
 rootProject.name = 'srm'
-include 'srm-persistence', 'srm-api', 'srm-scheduler', 'srm-auth'
+include 'srm-persistence', 'srm-api', 'srm-scheduler', 'srm-auth', 'srm-domain'

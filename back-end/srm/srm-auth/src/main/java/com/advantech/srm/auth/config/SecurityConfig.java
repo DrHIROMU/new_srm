@@ -74,7 +74,7 @@ public class SecurityConfig {
                 .authenticationProvider(supplierAuthenticationProvider)      // Check for suppliers first.
                 .authenticationProvider(internalUserAuthenticationProvider) // Fallback for internal users.
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/login").permitAll()
+                        .requestMatchers("/login", "/login.css", "/css/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // Form login handles the redirect to the login page from the

@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.advantech.srm.domain.enums.UserAccountStatusEnum;
 
 import java.time.Instant;
 
@@ -31,7 +32,7 @@ public class UserAccountEntity extends AuditableEntity {
     private String ezRowId;
 
     @Column(name = "account_status", length = 20, nullable = false)
-    private String accountStatus;
+    private UserAccountStatusEnum accountStatus;
 
     @Column(name = "failed_attempts", nullable = false)
     private Integer failedAttempts = 0;

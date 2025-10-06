@@ -40,9 +40,8 @@ public class InternalUserAuthenticationProvider implements AuthenticationProvide
         boolean soapAuthSuccess = authenticateWithSoap(email, password, ipAddress);
 
         if (soapAuthSuccess) {
-            Optional<UserAccountEntity> userOptional = userAccountRepository.findByEmail(email);
-            if (userOptional.isPresent()) {
-                UserAccountEntity user = userOptional.get();
+            UserAccountEntity user = userAccountRepository.findByEmail(email);
+            if (user != null) {
                 // You can customize authorities based on user roles/permissions
                 return new UsernamePasswordAuthenticationToken(
                         user.getEmail(),

@@ -1,15 +1,14 @@
 package com.advantech.srm.persistence.entity.main;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
 @MappedSuperclass
-@Data
+@Getter
+@Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,9 +17,17 @@ public abstract class BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "create_by", updatable = false)
-    private String createBy;
+    @Column(name = "created_by", updatable = false)
+    private String createdBy;
 
-    @Column(name = "create_time", updatable = false)
-    private Instant createTime;
+    @Column(name = "created_time", updatable = false)
+    private Instant createdTime;
+
+    @PrePersist
+    public void onCreate() {
+        this.createdTime = Instant.now();
+        if (this.createdBy == null) {
+            this.createdBy = "SYSTEM";
+        }
+    }
 }

@@ -1,4 +1,4 @@
-package com.advantech.srm.api.account.dto;
+package com.advantech.srm.api.auth.dto;
 
 import lombok.Data;
 

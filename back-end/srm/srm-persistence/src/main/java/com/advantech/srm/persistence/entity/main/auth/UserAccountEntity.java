@@ -4,15 +4,13 @@ import com.advantech.srm.persistence.entity.main.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import com.advantech.srm.domain.enums.UserAccountStatusEnum;
 
 import java.time.Instant;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -35,7 +33,7 @@ public class UserAccountEntity extends AuditableEntity {
     private UserAccountStatusEnum accountStatus;
 
     @Column(name = "failed_attempts", nullable = false)
-    private Integer failedAttempts = 0;
+    private Integer failedAttempts;
 
     @Column(name = "last_login_time")
     private Instant lastLoginTime;

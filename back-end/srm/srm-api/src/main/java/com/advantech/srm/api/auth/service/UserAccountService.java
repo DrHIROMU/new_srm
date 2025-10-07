@@ -1,6 +1,6 @@
-package com.advantech.srm.api.account.service;
+package com.advantech.srm.api.auth.service;
 
-import com.advantech.srm.api.account.dto.UserRegistrationRequest;
+import com.advantech.srm.api.auth.dto.UserRegistrationRequest;
 import com.advantech.srm.domain.enums.UserAccountStatusEnum;
 import com.advantech.srm.persistence.entity.main.auth.UserAccountEntity;
 import com.advantech.srm.persistence.repository.main.account.UserAccountRepository;

@@ -2,22 +2,40 @@ package com.advantech.srm.persistence.entity.main;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
 
 @MappedSuperclass
-@Data
+@Getter
+@Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public abstract class AuditableEntity extends BaseEntity {
-    @Column(name = "update_by")
-    private String updateBy;
+    @Column(name = "updated_by")
+    private String updatedBy;
 
-    @Column(name = "update_time")
-    private Instant updateTime;
+    @Column(name = "updated_time")
+    private Instant updatedTime;
+
+    @PrePersist
+    public void onCreate() {
+        super.onCreate();
+        this.updatedTime = super.getCreatedTime();
+        if (this.updatedBy == null) {
+            this.updatedBy = "SYSTEM";
+        }
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedTime = Instant.now();
+        if (this.updatedBy == null) {
+            this.updatedBy = "SYSTEM";
+        }
+    }
 }

@@ -1,7 +1,7 @@
-package com.advantech.srm.api.account.controller;
+package com.advantech.srm.api.auth.controller;
 
-import com.advantech.srm.api.account.dto.UserRegistrationRequest;
-import com.advantech.srm.api.account.service.UserAccountService;
+import com.advantech.srm.api.auth.dto.UserRegistrationRequest;
+import com.advantech.srm.api.auth.service.UserAccountService;
 import com.advantech.srm.persistence.entity.main.auth.UserAccountEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

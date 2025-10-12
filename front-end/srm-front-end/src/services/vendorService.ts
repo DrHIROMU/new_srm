@@ -1,9 +1,9 @@
-import axios from 'axios'
+import apiClient from './apiClient'
 import type { CreationOptions } from '@/types/vendor'
 
 export const fetchCreationOptions = async (): Promise<CreationOptions> => {
   try {
-    const response = await axios.get<CreationOptions>('http://localhost:8084/AdvantechAPI/api/vendors/creation-options')
+    const response = await apiClient.get<CreationOptions>('/vendors/creation-options')
     return response.data
   } catch (error) {
     console.error('Error fetching creation options:', error)

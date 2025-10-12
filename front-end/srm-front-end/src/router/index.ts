@@ -15,9 +15,9 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue'),
     },
     {
-      path: '/login/callback',
-      name: 'login-callback',
-      component: () => import('../views/LoginCallbackView.vue'),
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('../views/AuthCallbackView.vue'),
     },
     {
       path: '/home',
@@ -61,21 +61,21 @@ router.beforeEach((to, from, next) => {
 
   // 每次路由變化時，都嘗試從 localStorage 載入 token
   // 這確保了使用者刷新頁面後登入狀態不會遺失
-  if (!authStore.isAuthenticated) {
-    authStore.tryLoadTokenFromStorage()
+  if (!authStore.accessToken) {
+    authStore.restoreSessionFromStorage()
   }
 
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
   // 如果目標頁面需要登入，但使用者未登入
   if (requiresAuth && !authStore.isAuthenticated) {
     // 將使用者導向登入頁
     next({ name: 'login' })
-  } 
+  }
   // 如果使用者已登入，但想進入登入頁，則直接導向主頁
-  else if ((to.name === 'login' || to.name === 'login-callback') && authStore.isAuthenticated) {
+  else if ((to.name === 'login' || to.name === 'auth-callback') && authStore.isAuthenticated) {
     next({ name: 'home' })
-  } 
+  }
   // 其他情況，正常放行
   else {
     next()

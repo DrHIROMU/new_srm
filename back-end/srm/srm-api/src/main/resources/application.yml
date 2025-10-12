@@ -1,15 +1,15 @@
+server:
+  port: 8084
+
 spring:
-  application:
-    name: srm-api
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8081/oauth2/jwks
 
 srm:
-  auth:
-    internal-soap:
-      endpoint: http://localhost:8080/ws/authenticate
-      soap-action: AuthenticateUser
-      success-xpath: "//*[local-name()='IsAuthenticated']/text()"
-      success-value: "true"
-      display-name-xpath: "//*[local-name()='DisplayName']/text()"
-      message-xpath: "//*[local-name()='Message']/text()"
-      connect-timeout: 5s
-      read-timeout: 5s
+  api:
+    cors:
+      allowed-origins:
+        - http://localhost:4200

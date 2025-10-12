@@ -9,8 +9,7 @@ import org.springframework.context.annotation.Import;
 @Import(MainDBConfig.class)
 public class SrmAuthApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(SrmAuthApplication.class, args);
-    }
-
+  public static void main(String[] args) {
+    SpringApplication.run(SrmAuthApplication.class, args);
+  }
 }

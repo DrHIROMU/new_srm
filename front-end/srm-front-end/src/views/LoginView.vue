@@ -1,97 +1,118 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { NButton, NCard } from 'naive-ui'
+import { ref, watchEffect } from 'vue'
+import { useRoute } from 'vue-router'
+import { buildAuthorizeUrl } from '@/services/authService'
+import { createPkcePair } from '@/utils/pkce'
+import { saveCodeVerifier, saveState } from '@/utils/oauthStorage'
 
-const isLoading = ref(false)
+const isRedirecting = ref(false)
+const errorMessage = ref<string | null>(null)
 
-/**
- * Generates a secure random string for the PKCE code_verifier.
- * @param length The length of the string to generate.
- */
-function generateRandomString(length: number): string {
-  const array = new Uint32Array(length / 2)
-  window.crypto.getRandomValues(array)
-  return Array.from(array, (dec) => ('0' + dec.toString(16)).slice(-2)).join('')
+const route = useRoute()
+
+const generateState = (length = 32): string => {
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const randomValues = new Uint32Array(length)
+  window.crypto.getRandomValues(randomValues)
+
+  let state = ''
+  for (let i = 0; i < length; i += 1) {
+    state += charset.charAt(randomValues[i] % charset.length)
+  }
+  return state
 }
 
-/**
- * Hashes the code_verifier using SHA-256 and then Base64URL encodes it to create the code_challenge.
- * @param verifier The code_verifier string.
- */
-async function generateCodeChallenge(verifier: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(verifier)
-  const digest = await window.crypto.subtle.digest('SHA-256', data)
-
-  // Base64URL encoding
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
-}
-
-const handleOAuthLogin = async () => {
-  isLoading.value = true
-
-  // --- [重要] 請根據您的 Auth Server 設定修改以下變數 ---
-  // 您的 Spring Authorization Server 基礎 URL
-  const authServerUrl = 'http://localhost:8081' 
-  // 您前端在 Auth Server 註冊的 Client ID
-  const clientId = 'srm-frontend' 
-  // 授權成功後，Auth Server 要跳轉回來的完整 URL (需與 Auth Server 設定一致)
-  const redirectUri = 'http://localhost:5173/login/callback' 
-  // 您想申請的權限，對於 OIDC 至少需要 'openid'
-  const scopes = 'openid profile' 
-  // ----------------------------------------------------
-
+const startOAuthRedirect = async () => {
+  isRedirecting.value = true
+  errorMessage.value = null
   try {
-    // 1. 產生並儲存 PKCE code_verifier
-    const codeVerifier = generateRandomString(128)
-    // 使用 sessionStorage，關閉分頁後自動清除
-    sessionStorage.setItem('pkce_code_verifier', codeVerifier)
-
-    // 2. 產生 code_challenge
-    const codeChallenge = await generateCodeChallenge(codeVerifier)
-
-    // 3. 組合授權 URL
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      scope: scopes,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-    })
-
-    const authorizationUrl = `${authServerUrl}/oauth2/authorize?${params.toString()}`
-
-    // 4. 重新導向到 Auth Server 進行登入和授權
-    window.location.href = authorizationUrl
+    const { codeVerifier, codeChallenge } = await createPkcePair()
+    const state = generateState()
+    saveCodeVerifier(codeVerifier)
+    saveState(state)
+    const authorizeUrl = buildAuthorizeUrl({ codeChallenge, state })
+    window.location.assign(authorizeUrl)
   } catch (error) {
-    console.error('OAuth 登入流程啟動失敗:', error)
-    isLoading.value = false
-    // 在此可以加入錯誤提示，例如使用 naive-ui 的 message
+    console.error('Failed to initiate OAuth redirect', error)
+    errorMessage.value = '初始化登入流程失敗，請稍後再試'
+    isRedirecting.value = false
   }
 }
+
+watchEffect(() => {
+  if (route.query.error) {
+    errorMessage.value = '登入失敗，請重新嘗試'
+  }
+})
 </script>
 
 <template>
-  <div class="flex justify-center items-center h-screen bg-gray-100">
-    <n-card class="w-full max-w-sm" title="系統登入">
-      <div class="text-center">
-        <p class="mb-6 text-gray-600">
-          歡迎使用供應商關係管理系統，請點擊下方按鈕進行身分驗證。
-        </p>
-        <n-button
-          type="primary"
-          class="w-full"
-          @click="handleOAuthLogin"
-          :loading="isLoading"
-          size="large"
-        >
-          使用企業帳號登入
-        </n-button>
-      </div>
-    </n-card>
-  </div>
+  <section class="login">
+    <div class="login__card">
+      <h1 class="login__title">SRM 登入</h1>
+      <p class="login__subtitle">請使用 Advantech 或供應商帳號進行驗證</p>
+      <button class="login__button" :disabled="isRedirecting" @click="startOAuthRedirect">
+        {{ isRedirecting ? '前往驗證中...' : '使用 OAuth2 登入' }}
+      </button>
+      <p v-if="errorMessage" class="login__error">{{ errorMessage }}</p>
+    </div>
+  </section>
 </template>
+
+<style scoped>
+.login {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f62fe 0%, #0043ce 100%);
+}
+
+.login__card {
+  background-color: #ffffff;
+  padding: 48px;
+  border-radius: 12px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  width: min(90%, 420px);
+}
+
+.login__title {
+  margin: 0 0 8px;
+  font-size: 32px;
+  color: #001141;
+}
+
+.login__subtitle {
+  margin: 0 0 24px;
+  color: #6f6f6f;
+  font-size: 16px;
+}
+
+.login__button {
+  background-color: #0f62fe;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s ease;
+}
+
+.login__button:disabled {
+  background-color: #8ab4f8;
+  cursor: progress;
+}
+
+.login__button:not(:disabled):hover {
+  background-color: #0043ce;
+}
+
+.login__error {
+  margin-top: 16px;
+  color: #da1e28;
+  font-size: 14px;
+}
+</style>

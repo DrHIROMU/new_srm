@@ -1,19 +1,22 @@
-# Repository Guidelines
+# AGENTS.md
 
-## Project Structure & Module Organization
-The workspace is split by concern: `front-end/srm-front-end` houses the Vue 3 app with feature folders (`src/views`, `src/stores`, `src/services`), while `back-end/srm` is a multi-module Spring Boot build (`srm-api`, `srm-auth`, `srm-domain`, `srm-persistence`, `srm-scheduler`). Tests live beside sources under `src/test`. Shared deployment assets sit in `infra` (`infra/app/docker-compose.yml` for local API + DB, `infra/cicd` for pipeline stacks).
+> 本檔提供給 **Codex**（與其他程式碼代理）在本機完成可運作的 BFF + API + Auth + Vue 專案。
+> 目標：**在本機完成登入（Authorization Code + PKCE + BFF）、分身分來源（DB / SOAP）驗證、透過 BFF 代理呼叫 API**。
 
-## Build, Test, and Development Commands
-Front-end: run `npm install` once, then `npm run dev` for Vite, `npm run build` for production bundles, `npm run test:unit` with Vitest, `npm run lint`, and `npm run format`. Back-end: from `back-end/srm`, use `./gradlew bootRun` to start the API, `./gradlew test` for the full suite, and `./gradlew build` to produce deployable jars/Docker contexts. `docker compose -f infra/app/docker-compose.yml up --build` will start the API against the bundled SQL Server image.
+---
 
-## Coding Style & Naming Conventions
-TypeScript and Vue files follow `.editorconfig` (2-space indent, LF endings) and Prettier (`semi: false`, single quotes). Components and stores use PascalCase filenames; composables, services, and Pinia stores use camelCase exports. Lint with the provided `eslint.config.ts` before sending changes. Java code targets Java 21, packages under `com.advantech.srm.*`, and class/files should remain PascalCase with Spring stereotypes (`*Controller`, `*Service`) aligned to their module.
+## 🔭 專案目標與架構
 
-## Testing Guidelines
-Create or update Vitest specs alongside features (`src/**/__tests__` or `*.spec.ts`). Mock external calls with Axios mocks and assert rendered DOM via Testing Library helpers. On the backend, add JUnit 5 tests in `src/test/java` mirroring package structure with `*Test` suffixes; prefer `@SpringBootTest` only when integration coverage is required. All new business logic must include focused unit tests, and existing suites should pass via `npm run test:unit` and `./gradlew test` before opening a PR.
+- 前端：**Vue 3（Vite dev server）**，`http://localhost:4200`
+- BFF：**Spring Boot（OAuth2 Client + Proxy）**，`http://localhost:8081`
+- API：**Spring Boot（Resource Server / JWT）**，`http://localhost:8080`
+- Auth：**Spring Authorization Server（SAS）**，`http://localhost:9000`
+- 流程：**Authorization Code + PKCE + BFF**。前端不保存 Token，BFF 握 access/refresh token 並代理 API。
+- **驗證規則**：email **含** `@advantech.com` → 走 **SOAP**；否則 → 走 **DB**（Postgres 可留接口，先用 InMemory / H2）。
 
-## Commit & Pull Request Guidelines
-Adopt the repository's Conventional Commit style--type plus optional scope (e.g., `feat(vendor): add vendor creation main page`) or bracketed type `[feat] message` when touching multiple areas. Keep messages in the imperative and describe the behaviour change. Pull requests should include a concise summary, linked Jira/GitHub issue, screenshots or curl samples for UI/API changes, and the commands used for validation. Request reviewers for both front-end and back-end when changes cross the boundary.
+> 開發模式 **不使用 Nginx**。為避免 CORS/Cookie 跨站問題，**請使用 Vite 開發代理（dev proxy）** 讓瀏覽器視角同源（4200 → 轉送 8081）。
 
-## Infrastructure Notes
-Secrets belong in local `.env` files (see `infra/app/.env` template) and must never be committed. When adding services, extend the relevant compose file and document exposed ports in this guide.
+---
+
+## 🗂️ 專案結構（Monorepo）
+

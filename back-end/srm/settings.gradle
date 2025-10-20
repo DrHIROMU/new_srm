@@ -1,2 +1,8 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 rootProject.name = 'srm'
-include 'srm-persistence', 'srm-api', 'srm-scheduler', 'srm-auth', 'srm-domain'
+include 'srm-persistence', 'srm-api', 'srm-scheduler', 'srm-auth', 'srm-domain', 'srm-bff'

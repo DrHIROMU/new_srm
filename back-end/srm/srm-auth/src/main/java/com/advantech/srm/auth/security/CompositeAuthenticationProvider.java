@@ -1,9 +1,8 @@
 package com.advantech.srm.auth.security;
 
-import com.advantech.srm.auth.service.SoapAuthenticationClient;
-import com.advantech.srm.auth.service.SoapAuthenticationResponse;
-import com.advantech.srm.auth.service.SupplierAccountService;
+import com.advantech.srm.auth.service.SoapAuthService;
 import com.advantech.srm.persistence.entity.main.auth.UserAccountEntity;
+import com.advantech.srm.persistence.repository.main.account.UserAccountRepository;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
@@ -19,16 +18,16 @@ import org.springframework.util.StringUtils;
 @Component
 public class CompositeAuthenticationProvider implements AuthenticationProvider {
 
-  private final SupplierAccountService supplierAccountService;
-  private final SoapAuthenticationClient soapAuthenticationClient;
+  private final SoapAuthService soapAuthService;
+  private final UserAccountRepository userAccountRepository;
   private final PasswordEncoder passwordEncoder;
 
   public CompositeAuthenticationProvider(
-      SupplierAccountService supplierAccountService,
-      SoapAuthenticationClient soapAuthenticationClient,
+      SoapAuthService soapAuthService,
+      UserAccountRepository userAccountRepository,
       PasswordEncoder passwordEncoder) {
-    this.supplierAccountService = supplierAccountService;
-    this.soapAuthenticationClient = soapAuthenticationClient;
+    this.soapAuthService = soapAuthService;
+    this.userAccountRepository = userAccountRepository;
     this.passwordEncoder = passwordEncoder;
   }
 
@@ -43,7 +42,7 @@ public class CompositeAuthenticationProvider implements AuthenticationProvider {
     if (username.toLowerCase(Locale.ENGLISH).endsWith("@advantech.com")) {
       return handleInternalAuthentication(username, password);
     }
-    return handleSupplierAuthentication(username, password);
+    return handleExternalAuthentication(username, password);
   }
 
   @Override
@@ -51,32 +50,42 @@ public class CompositeAuthenticationProvider implements AuthenticationProvider {
     return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
   }
 
-  private Authentication handleSupplierAuthentication(String email, String password) {
-    Optional<UserAccountEntity> optionalAccount = supplierAccountService.findActiveByEmail(email);
-    UserAccountEntity account =
-        optionalAccount.orElseThrow(() -> new BadCredentialsException("供應商帳號或密碼錯誤"));
+  private Authentication handleInternalAuthentication(String email, String password) {
+    Optional<SrmUserPrincipal> principal = soapAuthService.authenticate(email, password);
+    SrmUserPrincipal userPrincipal =
+        principal.orElseThrow(
+            () -> new BadCredentialsException("Unable to authenticate against internal directory"));
+    return UsernamePasswordAuthenticationToken.authenticated(
+        userPrincipal, null, userPrincipal.getAuthorities());
+  }
 
-    String passwordHash = account.getPasswordHash() != null
-        ? new String(account.getPasswordHash(), StandardCharsets.UTF_8)
-        : null;
-
-    if (!StringUtils.hasText(passwordHash) || !passwordEncoder.matches(password, passwordHash)) {
-      throw new BadCredentialsException("供應商帳號或密碼錯誤");
+  private Authentication handleExternalAuthentication(String username, String rawPassword) {
+    UserAccountEntity account = userAccountRepository.findByEmail(username);
+    if (account == null) {
+      throw new BadCredentialsException("Invalid username or password");
     }
-
+    String encodedPassword = extractEncodedPassword(account);
+    if (encodedPassword == null || !passwordEncoder.matches(rawPassword, encodedPassword)) {
+      throw new BadCredentialsException("Invalid username or password");
+    }
     SrmUserPrincipal principal = SrmUserPrincipal.fromSupplier(account);
     return UsernamePasswordAuthenticationToken.authenticated(
         principal, null, principal.getAuthorities());
   }
 
-  private Authentication handleInternalAuthentication(String email, String password) {
-    Optional<SoapAuthenticationResponse> response = soapAuthenticationClient.authenticate(email, password);
-    SoapAuthenticationResponse soapAuthenticationResponse =
-        response.orElseThrow(() -> new BadCredentialsException("無法驗證內部帳號"));
-
-    SrmUserPrincipal principal = SrmUserPrincipal.fromEmployee(soapAuthenticationResponse);
-    return UsernamePasswordAuthenticationToken.authenticated(
-        principal, null, principal.getAuthorities());
+  private String extractEncodedPassword(UserAccountEntity account) {
+    if (account.getPasswordHash() == null || account.getPasswordHash().length == 0) {
+      return null;
+    }
+    String stored = new String(account.getPasswordHash(), StandardCharsets.UTF_8).trim();
+    if (stored.isEmpty()) {
+      return null;
+    }
+    if (stored.startsWith("{")) {
+      return stored;
+    }
+    // Delegate encoders expect an algorithm prefix; default to bcrypt for legacy hashes.
+    return "{bcrypt}" + stored;
   }
 
   private String resolveUsername(UsernamePasswordAuthenticationToken token) {
@@ -84,7 +93,7 @@ public class CompositeAuthenticationProvider implements AuthenticationProvider {
     if (principal instanceof String username && StringUtils.hasText(username)) {
       return username;
     }
-    throw new BadCredentialsException("未提供有效的帳號");
+    throw new BadCredentialsException("Username must not be blank");
   }
 
   private String resolvePassword(UsernamePasswordAuthenticationToken token) {
@@ -92,6 +101,6 @@ public class CompositeAuthenticationProvider implements AuthenticationProvider {
     if (credentials instanceof String password && StringUtils.hasText(password)) {
       return password;
     }
-    throw new BadCredentialsException("未提供有效的密碼");
+    throw new BadCredentialsException("Password must not be blank");
   }
 }

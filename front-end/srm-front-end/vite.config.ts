@@ -8,7 +8,23 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
-  server: { host: '127.0.0.1', port: 4200, strictPort: true } ,
+  server: {
+    host: '127.0.0.1',
+    port: 4200,
+    strictPort: true,
+    proxy: {
+      '/bff': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/oauth': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   plugins: [
     vue(),
     vueJsx(),

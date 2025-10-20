@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: srm-bff
+  security:
+    oauth2:
+      client:
+        registration:
+          srm:
+            provider: srm
+            client-id: app-bff
+            client-secret: bff-secret
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/oauth/callback"
+            scope:
+              - openid
+              - profile
+        provider:
+          srm:
+            issuer-uri: http://localhost:9000
+  session:
+    cookie:
+      name: SRM-BFF-SESSION
+      http-only: true
+      same-site: lax
+
+srm:
+  bff:
+    api-base-url: http://localhost:8080
+    auth-base-url: http://localhost:9000
+    auth-logout-path: /api/auth/logout
+    frontend-success-redirect: http://localhost:4200/auth/callback
+    frontend-failure-redirect: http://localhost:4200/login?error=oauth_failed
+    cors:
+      allowed-origins:
+        - http://localhost:4200
+        - http://127.0.0.1:4200
+

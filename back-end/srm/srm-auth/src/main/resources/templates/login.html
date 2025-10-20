@@ -12,6 +12,9 @@
     <div class="login-shell">
         <div class="login-card">
             <h1 class="h4 text-center mb-4">Sign in to SRM</h1>
+            <div th:if="${param.error}" class="alert alert-danger" role="alert">
+                無法登入，請確認 Email 與密碼是否正確。
+            </div>
             <form action="/login" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                 <div class="mb-3">

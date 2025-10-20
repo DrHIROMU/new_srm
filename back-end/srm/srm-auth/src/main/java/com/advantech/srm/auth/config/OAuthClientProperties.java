@@ -7,12 +7,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "srm.auth.oauth2")
 public class OAuthClientProperties {
 
-  private String clientId = "srm-frontend";
-  private List<String> redirectUris = new ArrayList<>(List.of("http://localhost:4200/auth/callback"));
+  private String clientId = "app-bff";
+  private String clientSecret = "bff-secret";
+  private List<String> redirectUris = new ArrayList<>(List.of("http://localhost:8081/oauth/callback"));
   private List<String> scopes = new ArrayList<>(List.of("openid", "profile"));
   private int accessTokenTtlMinutes = 15;
   private int refreshTokenTtlHours = 24;
-  private String issuer = "http://localhost:8081";
+  private String issuer = "http://localhost:9000";
 
   public String getClientId() {
     return clientId;
@@ -20,6 +21,14 @@ public class OAuthClientProperties {
 
   public void setClientId(String clientId) {
     this.clientId = clientId;
+  }
+
+  public String getClientSecret() {
+    return clientSecret;
+  }
+
+  public void setClientSecret(String clientSecret) {
+    this.clientSecret = clientSecret;
   }
 
   public List<String> getRedirectUris() {

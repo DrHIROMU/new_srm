@@ -1,31 +1,17 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import LoginView from '../LoginView.vue'
 
 const hoisted = vi.hoisted(() => ({
-  buildAuthorizeUrl: vi.fn(() => 'https://auth.example.com/oauth2/authorize'),
-  createPkcePair: vi.fn(() =>
-    Promise.resolve({
-      codeVerifier: 'test-code-verifier',
-      codeChallenge: 'test-code-challenge',
-    }),
-  ),
-  saveCodeVerifier: vi.fn(),
-  saveState: vi.fn(),
+  startLogin: vi.fn(),
   useRoute: vi.fn(() => ({ query: {} })),
 }))
 
 vi.mock('@/services/authService', () => ({
-  buildAuthorizeUrl: hoisted.buildAuthorizeUrl,
-}))
-
-vi.mock('@/utils/pkce', () => ({
-  createPkcePair: hoisted.createPkcePair,
-}))
-
-vi.mock('@/utils/oauthStorage', () => ({
-  saveCodeVerifier: hoisted.saveCodeVerifier,
-  saveState: hoisted.saveState,
+  startLogin: hoisted.startLogin,
+  fetchSession: vi.fn(),
+  logout: vi.fn(),
 }))
 
 vi.mock('vue-router', async () => {
@@ -37,29 +23,13 @@ vi.mock('vue-router', async () => {
 })
 
 describe('LoginView', () => {
-  const originalCrypto = window.crypto
   const originalLocation = window.location
   const assignSpy = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
+    setActivePinia(createPinia())
     hoisted.useRoute.mockReturnValue({ query: {} })
-    hoisted.buildAuthorizeUrl.mockReset()
-    hoisted.createPkcePair.mockReset()
-    hoisted.saveCodeVerifier.mockReset()
-    hoisted.saveState.mockReset()
-    Object.defineProperty(window, 'crypto', {
-      configurable: true,
-      value: {
-        getRandomValues: (array: Uint32Array) => {
-          for (let i = 0; i < array.length; i += 1) {
-            array[i] = i
-          }
-          return array
-        },
-        subtle: originalCrypto.subtle,
-      },
-    })
     Object.defineProperty(window, 'location', {
       writable: true,
       value: {
@@ -68,31 +38,30 @@ describe('LoginView', () => {
     })
   })
 
+  it('calls BFF login endpoint when button clicked', async () => {
+    const wrapper = mount(LoginView)
+    const button = wrapper.get('button')
+
+    expect(button.attributes('disabled')).toBeUndefined()
+
+    await button.trigger('click')
+
+    expect(hoisted.startLogin).toHaveBeenCalledTimes(1)
+    expect(assignSpy).toHaveBeenCalledTimes(0)
+    expect(button.attributes('disabled')).toBeDefined()
+  })
+
+  it('displays error when query contains error flag', () => {
+    hoisted.useRoute.mockReturnValue({ query: { error: 'oauth_failed' } })
+    const wrapper = mount(LoginView)
+
+    expect(wrapper.text()).toContain('登入失敗，請重新嘗試')
+  })
+
   afterEach(() => {
-    Object.defineProperty(window, 'crypto', {
-      configurable: true,
-      value: originalCrypto,
-    })
     Object.defineProperty(window, 'location', {
       writable: true,
       value: originalLocation,
     })
-  })
-
-  it('啟動登入流程時會儲存 PKCE 資訊並導向 OAuth2 授權頁', async () => {
-    const wrapper = mount(LoginView)
-    const button = wrapper.get('button')
-
-    await button.trigger('click')
-
-    expect(hoisted.createPkcePair).toHaveBeenCalledTimes(1)
-    expect(hoisted.saveCodeVerifier).toHaveBeenCalledWith('test-code-verifier')
-    expect(hoisted.saveState).toHaveBeenCalledTimes(1)
-    expect(hoisted.buildAuthorizeUrl).toHaveBeenCalledWith({
-      codeChallenge: 'test-code-challenge',
-      state: expect.any(String),
-    })
-    expect(assignSpy).toHaveBeenCalledWith('https://auth.example.com/oauth2/authorize')
-    expect(button.attributes('disabled')).toBeDefined()
   })
 })

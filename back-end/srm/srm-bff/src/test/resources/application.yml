@@ -1,0 +1,32 @@
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          srm:
+            authorization-uri: https://example.org/oauth2/authorize
+            token-uri: https://example.org/oauth2/token
+            jwk-set-uri: https://example.org/oauth2/jwks
+            user-info-uri: https://example.org/oauth2/userinfo
+            user-name-attribute: sub
+        registration:
+          srm:
+            client-id: test-client
+            client-secret: test-secret
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/oauth/callback"
+            scope:
+              - openid
+              - profile
+  session:
+    cookie:
+      name: TEST-SRM-BFF
+srm:
+  bff:
+    api-base-url: http://localhost:8080
+    frontend-success-redirect: http://localhost:4200/auth/callback
+    frontend-failure-redirect: http://localhost:4200/login?error=oauth_failed
+    cors:
+      allowed-origins:
+        - http://localhost:4200

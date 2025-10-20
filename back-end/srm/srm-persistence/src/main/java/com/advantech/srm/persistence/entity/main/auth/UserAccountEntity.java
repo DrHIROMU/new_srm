@@ -1,11 +1,13 @@
 package com.advantech.srm.persistence.entity.main.auth;
 
 import com.advantech.srm.persistence.entity.main.AuditableEntity;
+import com.advantech.srm.domain.enums.UserAccountStatusEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.*;
-import com.advantech.srm.domain.enums.UserAccountStatusEnum;
 
 import java.time.Instant;
 
@@ -29,6 +31,7 @@ public class UserAccountEntity extends AuditableEntity {
     @Column(name = "ez_row_id", length = 50)
     private String ezRowId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "account_status", length = 20, nullable = false)
     private UserAccountStatusEnum accountStatus;
 

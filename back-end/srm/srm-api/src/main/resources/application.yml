@@ -1,15 +1,16 @@
 server:
-  port: 8084
+  port: 8080
 
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://localhost:8081/oauth2/jwks
+          jwk-set-uri: http://localhost:9000/oauth2/jwks
 
 srm:
   api:
     cors:
       allowed-origins:
         - http://localhost:4200
+        - http://localhost:8081

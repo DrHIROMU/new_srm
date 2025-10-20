@@ -3,7 +3,7 @@ import type { CreationOptions } from '@/types/vendor'
 
 export const fetchCreationOptions = async (): Promise<CreationOptions> => {
   try {
-    const response = await apiClient.get<CreationOptions>('/vendors/creation-options')
+    const response = await apiClient.get<CreationOptions>('/api/vendors/creation-options')
     return response.data
   } catch (error) {
     console.error('Error fetching creation options:', error)

@@ -1,9 +1,16 @@
 server:
-  port: 8081
+  port: 9000
   servlet:
     session:
       cookie:
         name: SRM-AUTH-SESSION
+        http-only: true
+        same-site: lax
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-exception: true
+    include-stacktrace: always
 
 spring:
   datasource:
@@ -16,21 +23,34 @@ spring:
       ddl-auto: update
     show-sql: false
 
+logging:
+  level:
+    com.advantech.srm.auth.config: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+    org.springframework.security.oauth2.server.authorization: TRACE
+    org.springframework.security.oauth2.server.authorization.web: TRACE
+
 srm:
   auth:
     cors:
       allowed-origins:
         - http://localhost:4200
+        - http://127.0.0.1:4200
     oauth2:
-      client-id: srm-frontend
+      client-id: app-bff
+      client-secret: bff-secret
       redirect-uris:
-        - http://localhost:4200/auth/callback
+        - http://localhost:8081/oauth/callback
+        - http://localhost:4200/oauth/callback
+        - http://127.0.0.1:4200/oauth/callback
+        - http://127.0.0.1:8081/oauth/callback
       scopes:
         - openid
         - profile
       access-token-ttl-minutes: 15
       refresh-token-ttl-hours: 24
-      issuer: http://localhost:8081
+      issuer: http://localhost:9000
     soap:
       enabled: false
       mock-users:
@@ -42,3 +62,4 @@ srm:
             - ROLE_INTERNAL
           permissions:
             - vendors.read
+

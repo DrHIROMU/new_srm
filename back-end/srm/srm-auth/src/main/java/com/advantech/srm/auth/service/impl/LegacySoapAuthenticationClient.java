@@ -37,17 +37,18 @@ public class LegacySoapAuthenticationClient implements SoapAuthenticationClient 
     }
 
     if (!properties.isEnabled()) {
-      log.warn("SOAP 認證未啟用，拒絕內部帳號登入：{}", email);
+      log.warn("SOAP authentication disabled; skipping login check for user {}", email);
       return Optional.empty();
     }
 
     if (webServiceTemplate == null) {
-      log.error("SOAP 認證啟用但未設定 endpointUri");
+      log.error("SOAP authentication client is missing endpointUri configuration");
       return Optional.empty();
     }
 
-    // TODO: 依據實際 SOAP 規格完成封包與回應解析
-    throw new UnsupportedOperationException("SOAP 認證尚未實作，請配置 mockUsers 或實作 client");
+    // TODO: Implement the SOAP request/response workflow once integration specs are finalized.
+    throw new UnsupportedOperationException(
+        "SOAP authentication not implemented; configure mockUsers or supply a concrete client");
   }
 
   private Optional<SoapAuthenticationResponse> authenticateWithMockUsers(String email, String password) {

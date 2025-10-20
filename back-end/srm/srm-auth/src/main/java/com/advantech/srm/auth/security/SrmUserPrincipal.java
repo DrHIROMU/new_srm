@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public class SrmUserPrincipal implements Principal {
 
@@ -64,6 +65,29 @@ public class SrmUserPrincipal implements Principal {
         response.getPermissions());
   }
 
+  public static SrmUserPrincipal fromUserDetails(UserDetails userDetails) {
+    Set<String> roleAuthorities =
+        userDetails.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .filter(authority -> authority.startsWith("ROLE_"))
+            .collect(Collectors.toSet());
+    if (roleAuthorities.isEmpty()) {
+      roleAuthorities = Set.of("ROLE_SUPPLIER");
+    }
+    Set<String> permissions =
+        userDetails.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .filter(authority -> !authority.startsWith("ROLE_"))
+            .collect(Collectors.toSet());
+    return new SrmUserPrincipal(
+        userDetails.getUsername(),
+        userDetails.getUsername(),
+        userDetails.getUsername(),
+        true,
+        roleAuthorities,
+        permissions);
+  }
+
   public String getId() {
     return id;
   }
@@ -97,3 +121,5 @@ public class SrmUserPrincipal implements Principal {
     return email;
   }
 }
+
+

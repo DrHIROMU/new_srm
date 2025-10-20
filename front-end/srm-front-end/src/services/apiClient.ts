@@ -1,25 +1,12 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+const bffBaseUrl = import.meta.env.VITE_BFF_BASE_URL || '/bff'
 
 const apiClient = axios.create({
-  baseURL: apiBaseUrl,
+  baseURL: bffBaseUrl,
   timeout: 15000,
   withCredentials: true,
-})
-
-apiClient.interceptors.request.use((config) => {
-  try {
-    const authStore = useAuthStore()
-    if (authStore.isAuthenticated && authStore.accessToken) {
-      config.headers = config.headers ?? {}
-      config.headers.Authorization = `Bearer ${authStore.accessToken}`
-    }
-  } catch (error) {
-    console.warn('Unable to attach auth header', error)
-  }
-  return config
 })
 
 apiClient.interceptors.response.use(
@@ -28,9 +15,9 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       try {
         const authStore = useAuthStore()
-        await authStore.logout()
-      } catch (logoutError) {
-        console.warn('Failed to auto logout after 401', logoutError)
+        authStore.clearSession()
+      } catch (storeError) {
+        console.warn('Failed to clear session after 401', storeError)
       }
     }
     return Promise.reject(error)

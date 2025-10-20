@@ -8,12 +8,12 @@ import router from './router'
 import { useAuthStore } from './stores/authStore'
 
 const app = createApp(App)
+const pinia = createPinia()
 
-app.use(createPinia())
+app.use(pinia)
 app.use(router)
 
-// 應用程式啟動時，初始化 auth store 並嘗試從 localStorage 載入 token
 const authStore = useAuthStore()
-authStore.restoreSessionFromStorage()
-
-app.mount('#app')
+authStore.initializeSession().finally(() => {
+  app.mount('#app')
+})

@@ -11,6 +11,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationConsentService;
@@ -33,9 +34,12 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 public class AuthorizationServerConfig {
 
   private final OAuthClientProperties clientProperties;
+  private final PasswordEncoder passwordEncoder;
 
-  public AuthorizationServerConfig(OAuthClientProperties clientProperties) {
+  public AuthorizationServerConfig(
+      OAuthClientProperties clientProperties, PasswordEncoder passwordEncoder) {
     this.clientProperties = clientProperties;
+    this.passwordEncoder = passwordEncoder;
   }
 
   @Bean
@@ -65,6 +69,7 @@ public class AuthorizationServerConfig {
                 .oidc(Customizer.withDefaults()));
 
     http.oauth2ResourceServer((resourceServer) -> resourceServer.jwt(Customizer.withDefaults()));
+    http.formLogin(form -> form.loginPage("/login").permitAll());
 
     return http.build();
   }
@@ -75,12 +80,19 @@ public class AuthorizationServerConfig {
     http.authorizeHttpRequests(
             (authorize) ->
                 authorize
-                    .requestMatchers("/assets/**", "/actuator/health", "/actuator/info")
+                    .requestMatchers(
+                        "/assets/**",
+                        "/css/**",
+                        "/login",
+                        "/error",
+                        "/.well-known/**",
+                        "/actuator/health",
+                        "/actuator/info")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
         .csrf((csrf) -> csrf.ignoringRequestMatchers("/api/**"))
-        .formLogin(Customizer.withDefaults())
+        .formLogin(form -> form.loginPage("/login").permitAll())
         .logout(Customizer.withDefaults())
         .cors(Customizer.withDefaults());
     return http.build();
@@ -91,7 +103,8 @@ public class AuthorizationServerConfig {
     RegisteredClient.Builder builder =
         RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId(clientProperties.getClientId())
-            .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+            .clientSecret(passwordEncoder.encode(clientProperties.getClientSecret()))
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
             .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
             .tokenSettings(

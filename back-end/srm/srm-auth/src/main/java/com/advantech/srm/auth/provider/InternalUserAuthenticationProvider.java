@@ -1,7 +1,7 @@
 package com.advantech.srm.auth.provider;
 
 import com.advantech.srm.persistence.entity.main.auth.UserAccountEntity;
-import com.advantech.srm.persistence.repository.main.account.UserAccountRepository;
+import com.advantech.srm.persistence.repository.main.auth.UserAccountRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
@@ -19,7 +19,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Collections;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor

@@ -43,3 +43,11 @@ npm run test:unit
 ```sh
 npm run lint
 ```
+
+## AI 助手設定
+
+- 建議在專案根目錄建立 `.env.local` 並新增 `VITE_AI_AGENT_API_BASE_URL` 以對應後端 FastAPI 服務，例如：
+
+  ```sh
+  VITE_AI_AGENT_API_BASE_URL=http://localhost:8081/api
+  ```

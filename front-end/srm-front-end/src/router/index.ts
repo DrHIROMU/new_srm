@@ -22,7 +22,7 @@ const router = createRouter({
     {
       path: '/home',
       component: MainLayout,
-      meta: { requiresAuth: true }, // 將 requiresAuth 移到父路由
+      // meta: { requiresAuth: true }, // 將 requiresAuth 移到父路由
       children: [
         {
           path: '',

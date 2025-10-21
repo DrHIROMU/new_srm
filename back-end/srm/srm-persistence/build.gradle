@@ -10,8 +10,12 @@ repositories {
     mavenCentral()
 }
 
+compileJava {
+    options.compilerArgs << '-parameters'
+}
+
 dependencies {
-    implementation project(':srm-domain')
+    implementation project(':srm-common')
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation("org.postgresql:postgresql:42.7.4")
     compileOnly 'org.projectlombok:lombok'

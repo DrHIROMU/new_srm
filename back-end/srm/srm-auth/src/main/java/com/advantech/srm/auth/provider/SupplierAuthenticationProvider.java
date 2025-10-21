@@ -1,7 +1,7 @@
 package com.advantech.srm.auth.provider;
 
 import com.advantech.srm.persistence.entity.main.auth.UserAccountEntity;
-import com.advantech.srm.persistence.repository.main.account.UserAccountRepository;
+import com.advantech.srm.persistence.repository.main.auth.UserAccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;

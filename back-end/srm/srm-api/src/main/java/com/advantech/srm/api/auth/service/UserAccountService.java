@@ -1,9 +1,9 @@
 package com.advantech.srm.api.auth.service;
 
 import com.advantech.srm.api.auth.dto.UserRegistrationRequest;
-import com.advantech.srm.domain.enums.UserAccountStatusEnum;
+import com.advantech.srm.common.enums.auth.UserAccountStatusEnum;
 import com.advantech.srm.persistence.entity.main.auth.UserAccountEntity;
-import com.advantech.srm.persistence.repository.main.account.UserAccountRepository;
+import com.advantech.srm.persistence.repository.main.auth.UserAccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

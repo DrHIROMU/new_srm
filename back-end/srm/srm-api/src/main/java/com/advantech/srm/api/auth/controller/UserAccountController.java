@@ -9,14 +9,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/api")
+@RequestMapping("/api/user-accounts")
 @RestController
 @Tag(name = "User Account", description = "使用者帳戶管理 API")
 public class UserAccountController {
     @Autowired
     private UserAccountService userAccountService;
 
-    @GetMapping("/user-accounts/{email}")
+    @GetMapping("/{email}")
     @Operation(summary = "根據 email 查詢使用者", description = "透過 email 查詢使用者帳戶資訊")
     public UserAccountEntity findByEmail(@PathVariable String email) {
         return userAccountService.findByEmail(email);

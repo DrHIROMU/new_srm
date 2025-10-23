@@ -1,7 +1,7 @@
 """Application configuration handled via environment variables."""
 
 from functools import lru_cache
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +23,26 @@ class Settings(BaseSettings):
     external_api_key: Optional[str] = Field(default=None, alias="EXTERNAL_API_KEY")
     external_api_timeout_seconds: int = Field(default=15, alias="EXTERNAL_API_TIMEOUT_SECONDS")
 
+    cors_allow_origins: Optional[str] = Field(default=None, alias="CORS_ALLOW_ORIGINS")
+
+    knowledge_search_enabled: bool = Field(default=False, alias="KNOWLEDGE_SEARCH_ENABLED")
+    chroma_host: Optional[str] = Field(default=None, alias="CHROMA_HOST")
+    chroma_port: int = Field(default=8000, alias="CHROMA_PORT")
+    chroma_collection: str = Field(default="srm-knowledge-base", alias="CHROMA_COLLECTION")
+    chroma_embedding_model: str = Field(
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        alias="CHROMA_EMBEDDING_MODEL",
+    )
+    chroma_top_k: int = Field(default=4, alias="CHROMA_TOP_K")
+
+    @property
+    def cors_allow_origin_list(self) -> List[str]:
+        """Return parsed CORS allow origins list with sensible defaults."""
+        if not self.cors_allow_origins:
+            return ["http://localhost:4200"]
+
+        parsed = [origin.strip() for origin in self.cors_allow_origins.split(",") if origin.strip()]
+        return parsed or ["http://localhost:4200"]
 
 @lru_cache
 def get_settings() -> Settings:
@@ -31,4 +51,3 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-

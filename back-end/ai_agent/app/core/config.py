@@ -25,6 +25,16 @@ class Settings(BaseSettings):
 
     cors_allow_origins: Optional[str] = Field(default=None, alias="CORS_ALLOW_ORIGINS")
 
+    knowledge_search_enabled: bool = Field(default=False, alias="KNOWLEDGE_SEARCH_ENABLED")
+    chroma_host: Optional[str] = Field(default=None, alias="CHROMA_HOST")
+    chroma_port: int = Field(default=8000, alias="CHROMA_PORT")
+    chroma_collection: str = Field(default="srm-knowledge-base", alias="CHROMA_COLLECTION")
+    chroma_embedding_model: str = Field(
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        alias="CHROMA_EMBEDDING_MODEL",
+    )
+    chroma_top_k: int = Field(default=4, alias="CHROMA_TOP_K")
+
     @property
     def cors_allow_origin_list(self) -> List[str]:
         """Return parsed CORS allow origins list with sensible defaults."""

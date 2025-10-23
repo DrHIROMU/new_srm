@@ -27,9 +27,34 @@ Python FastAPI service that brokers conversations between the SRM front-end, Ope
    - `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_TIMEOUT_SECONDS`
    - `EXTERNAL_API_BASE_URL`, `EXTERNAL_API_KEY`, `EXTERNAL_API_TIMEOUT_SECONDS`
    - `CORS_ALLOW_ORIGINS` (comma-separated list of allowed front-end origins, e.g. `http://localhost:4200`)
+   - (Optional) enable knowledge search with `KNOWLEDGE_SEARCH_ENABLED=true` and configure `CHROMA_*` values
 4. Launch the API using `uvicorn app.main:app --reload --host 0.0.0.0 --port 8081`.
 
 The service will expose OpenAPI docs at `http://localhost:8081/api/docs`.
+
+## Knowledge base integration (optional)
+
+The backend can enrich prompts with passages stored in [ChromaDB](https://www.trychroma.com/). To enable it:
+
+1. Run (or connect to) a Chroma server, e.g. `docker run -p 8000:8000 chromadb/chroma`.
+2. Set the following variables in `.env`:
+   ```ini
+   KNOWLEDGE_SEARCH_ENABLED=true
+   CHROMA_HOST=127.0.0.1
+   CHROMA_PORT=8000
+   CHROMA_COLLECTION=srm-knowledge-base
+   CHROMA_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+   CHROMA_TOP_K=4
+   ```
+3. Ingest documents with the helper script:
+   ```bash
+   python dev_tools/chroma_ingest.py ./docs \
+     --chroma-host 127.0.0.1 --chroma-port 8000 \
+     --collection srm-knowledge-base
+   ```
+   The script accepts `.txt` and `.md` files by default and will chunk them with sentence-transformer embeddings.
+
+Whenever a user sends a prompt, the latest user message is used as a semantic search query; the top matches are injected into the system prompt so the agent can ground responses on your curated corpus.
 
 ## Testing
 

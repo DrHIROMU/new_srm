@@ -5,6 +5,7 @@ from functools import lru_cache
 from .clients.openai_client import OpenAIChatClient
 from .core.config import settings
 from .services.data_service import DataService
+from .services.knowledge_service import KnowledgeService
 from .services.llm_service import LLMService
 
 
@@ -24,11 +25,24 @@ def get_data_service() -> DataService:
     )
 
 
+@lru_cache
+def get_knowledge_service() -> KnowledgeService:
+    """Return a cached KnowledgeService instance."""
+    return KnowledgeService(
+        host=settings.chroma_host,
+        port=settings.chroma_port,
+        collection=settings.chroma_collection,
+        embedding_model=settings.chroma_embedding_model,
+        top_k=settings.chroma_top_k,
+        enabled=settings.knowledge_search_enabled,
+    )
+
+
 def get_llm_service() -> LLMService:
     """Construct an LLM service with dependencies injected."""
     return LLMService(
         client=_get_openai_client(),
         default_model=settings.openai_model,
         timeout_seconds=settings.openai_timeout_seconds,
+        knowledge_service=get_knowledge_service(),
     )
-

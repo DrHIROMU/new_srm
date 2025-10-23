@@ -36,7 +36,7 @@
                   <p>{{ displayedContent[message.id] ?? message.content }}</p>
                 </div>
               </div>
-              <p v-if="isSending" class="ai-assistant-typing">AI 助手正在思考...</p>
+              <p v-if="showTypingIndicator" class="ai-assistant-typing">AI 助手正在思考...</p>
             </div>
 
             <p v-if="errorMessage" class="ai-assistant-error" role="alert">
@@ -75,18 +75,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import axios from 'axios'
-import { chatWithAssistant } from '@/services/aiAssistantService'
-import type { ChatMessage } from '@/types/aiAssistant'
+import { streamChatWithAssistant } from '@/services/aiAssistantService'
+import type { ChatMessage, ChatStreamEvent } from '@/types/aiAssistant'
 
-const TYPEWRITER_INTERVAL = 24
 const isOpen = ref(false)
 const isSending = ref(false)
 const userInput = ref('')
 const errorMessage = ref<string | null>(null)
 const conversationId = ref<string | null>(null)
-const displayedContent = ref<Record<string, string>>({})
 const messages = ref<ChatMessage[]>([
   {
     id: generateId('assistant'),
@@ -94,15 +92,169 @@ const messages = ref<ChatMessage[]>([
     content: '您好，我是 AI 採購助手，需要協助什麼嗎？',
   },
 ])
-const typingTimers = new Map<string, number>()
-messages.value.forEach((message) => {
-  displayedContent.value[message.id] = message.content
-})
-
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLTextAreaElement | null>(null)
+const streamAbortController = ref<AbortController | null>(null)
+const displayedContent = reactive<Record<string, string>>({})
+const TYPEWRITER_MIN_INTERVAL_MS = 20
+
+type TypewriterState = {
+  queue: string[]
+  frameId: number | null
+  lastRenderedAt?: number
+}
+
+const typewriterStates = new Map<string, TypewriterState>()
+const streamingMessageId = ref<string | null>(null)
+
+messages.value.forEach((message) => {
+  displayedContent[message.id] = message.content
+})
+
+const setDisplayedContent = (id: string, content: string) => {
+  displayedContent[id] = content
+}
+
+const stopTypewriter = (id: string) => {
+  const state = typewriterStates.get(id)
+  if (!state) {
+    return
+  }
+  if (typeof window !== 'undefined' && state.frameId !== null) {
+    window.cancelAnimationFrame(state.frameId)
+  }
+  state.queue.length = 0
+  typewriterStates.delete(id)
+}
+
+const getBufferedContent = (id: string) => {
+  const pending = typewriterStates.get(id)
+  const pendingText = pending ? pending.queue.join('') : ''
+  return (displayedContent[id] ?? '') + pendingText
+}
+
+const scheduleTypewriter = (id: string) => {
+  const state = typewriterStates.get(id)
+  if (!state) {
+    return
+  }
+
+  if (typeof window === 'undefined') {
+    if (state.queue.length > 0) {
+      setDisplayedContent(id, (displayedContent[id] ?? '') + state.queue.join(''))
+      state.queue.length = 0
+    }
+    typewriterStates.delete(id)
+    return
+  }
+
+  if (state.frameId !== null) {
+    return
+  }
+
+  const step = (timestamp: number) => {
+    const currentState = typewriterStates.get(id)
+    if (!currentState) {
+      return
+    }
+
+    if (
+      currentState.lastRenderedAt !== undefined &&
+      timestamp - currentState.lastRenderedAt < TYPEWRITER_MIN_INTERVAL_MS
+    ) {
+      currentState.frameId = window.requestAnimationFrame(step)
+      return
+    }
+
+    currentState.lastRenderedAt = timestamp
+
+    const nextCharacter = currentState.queue.shift() ?? ''
+    if (nextCharacter) {
+      setDisplayedContent(id, (displayedContent[id] ?? '') + nextCharacter)
+      nextTick(scrollMessagesToBottom)
+    }
+
+    if (currentState.queue.length === 0) {
+      currentState.frameId = null
+      currentState.lastRenderedAt = undefined
+      typewriterStates.delete(id)
+      if (streamingMessageId.value === id) {
+        streamingMessageId.value = null
+      }
+      return
+    }
+
+    currentState.frameId = window.requestAnimationFrame(step)
+  }
+
+  state.frameId = window.requestAnimationFrame(step)
+}
+
+const enqueueTypewriter = (id: string, text: string) => {
+  if (!text) {
+    return
+  }
+
+  const characters = Array.from(text)
+  if (characters.length === 0) {
+    return
+  }
+
+  const existingState = typewriterStates.get(id)
+  const state: TypewriterState =
+    existingState ?? { queue: [], frameId: null, lastRenderedAt: undefined }
+  state.queue.push(...characters)
+  typewriterStates.set(id, state)
+
+  scheduleTypewriter(id)
+}
+
+const finalizeTypewriter = (id: string, content: string) => {
+  stopTypewriter(id)
+  setDisplayedContent(id, content)
+}
+
+const removeDisplayedContent = (id: string) => {
+  stopTypewriter(id)
+  if (Object.prototype.hasOwnProperty.call(displayedContent, id)) {
+    delete displayedContent[id]
+  }
+}
+
+const queueContentDiff = (id: string, targetContent: string) => {
+  if (!targetContent) {
+    finalizeTypewriter(id, '')
+    return
+  }
+
+  const bufferedContent = getBufferedContent(id)
+  if (bufferedContent === targetContent) {
+    return
+  }
+
+  if (targetContent.startsWith(bufferedContent)) {
+    const remainder = targetContent.slice(bufferedContent.length)
+    if (remainder) {
+      enqueueTypewriter(id, remainder)
+    }
+    return
+  }
+
+  finalizeTypewriter(id, targetContent)
+}
 
 const canSend = computed(() => userInput.value.trim().length > 0 && !isSending.value)
+const showTypingIndicator = computed(() => {
+  const lastMessage = messages.value[messages.value.length - 1]
+  if (!lastMessage || lastMessage.role !== 'assistant') {
+    return isSending.value
+  }
+  const renderedContent = displayedContent[lastMessage.id] ?? lastMessage.content
+  if (renderedContent !== lastMessage.content) {
+    return true
+  }
+  return isSending.value && !lastMessage.content
+})
 
 const scrollMessagesToBottom = () => {
   const container = messagesContainer.value
@@ -111,51 +263,15 @@ const scrollMessagesToBottom = () => {
   }
 }
 
-const stopTypingTimer = (id: string) => {
-  const timerId = typingTimers.get(id)
-  if (timerId !== undefined) {
-    window.clearInterval(timerId)
-    typingTimers.delete(id)
+const abortActiveStream = () => {
+  if (streamAbortController.value) {
+    streamAbortController.value.abort()
+    streamAbortController.value = null
   }
-}
-
-const typeAssistantMessage = (message: ChatMessage) => {
-  const fullContent = message.content
-
-  stopTypingTimer(message.id)
-
-  if (!fullContent) {
-    displayedContent.value[message.id] = ''
-    nextTick(scrollMessagesToBottom)
-    return
+  if (streamingMessageId.value) {
+    stopTypewriter(streamingMessageId.value)
+    streamingMessageId.value = null
   }
-
-  const characters = Array.from(fullContent)
-  let index = 0
-
-  displayedContent.value[message.id] = ''
-  const intervalId = window.setInterval(() => {
-    displayedContent.value[message.id] = characters.slice(0, index + 1).join('')
-    index += 1
-    nextTick(scrollMessagesToBottom)
-
-    if (index >= characters.length) {
-      displayedContent.value[message.id] = fullContent
-      stopTypingTimer(message.id)
-    }
-  }, TYPEWRITER_INTERVAL)
-
-  typingTimers.set(message.id, intervalId)
-}
-
-const renderMessage = (message: ChatMessage) => {
-  if (message.role === 'assistant') {
-    typeAssistantMessage(message)
-    return
-  }
-
-  displayedContent.value[message.id] = message.content
-  nextTick(scrollMessagesToBottom)
 }
 
 watch(
@@ -174,10 +290,14 @@ watch(isOpen, async (open) => {
 })
 
 const togglePanel = () => {
+  if (isOpen.value) {
+    abortActiveStream()
+  }
   isOpen.value = !isOpen.value
 }
 
 const closePanel = () => {
+  abortActiveStream()
   isOpen.value = false
 }
 
@@ -186,6 +306,56 @@ const handleEnterKey = () => {
     handleSubmit()
   }
 }
+
+const applyStreamEvent = async (
+  event: ChatStreamEvent,
+  assistantMessage: ChatMessage,
+): Promise<boolean> => {
+  switch (event.type) {
+    case 'content.delta': {
+      if (event.delta) {
+        assistantMessage.content += event.delta
+        enqueueTypewriter(assistantMessage.id, event.delta)
+      }
+      break
+    }
+    case 'content.done': {
+      const nextContent = event.content ?? assistantMessage.content
+      assistantMessage.content = nextContent
+      queueContentDiff(assistantMessage.id, nextContent)
+      break
+    }
+    case 'final': {
+      conversationId.value = event.conversation_id ?? conversationId.value
+      assistantMessage.role = event.reply.role ?? 'assistant'
+      const targetContent =
+        event.reply.content?.trim() ||
+        assistantMessage.content ||
+        '我已收到您的訊息。'
+      assistantMessage.content = targetContent
+      queueContentDiff(assistantMessage.id, targetContent)
+      if (!typewriterStates.has(assistantMessage.id)) {
+        streamingMessageId.value = null
+      }
+      return true
+    }
+    case 'error': {
+      const detail = event.detail || 'AI �U��ȮɵL�k�^���A�еy��A�աC'
+      errorMessage.value = detail
+      assistantMessage.content = detail
+      finalizeTypewriter(assistantMessage.id, detail)
+      streamingMessageId.value = null
+      return true
+    }
+    default:
+      break
+  }
+
+  await nextTick()
+  scrollMessagesToBottom()
+  return false
+}
+
 
 const handleSubmit = async () => {
   const message = userInput.value.trim()
@@ -200,7 +370,10 @@ const handleSubmit = async () => {
   }
 
   messages.value.push(userMessage)
-  renderMessage(userMessage)
+  setDisplayedContent(userMessage.id, userMessage.content)
+  await nextTick()
+  scrollMessagesToBottom()
+
   userInput.value = ''
   errorMessage.value = null
   isSending.value = true
@@ -209,39 +382,70 @@ const handleSubmit = async () => {
     conversationId.value = generateId('conversation')
   }
 
-  try {
-    const response = await chatWithAssistant({
-      conversation_id: conversationId.value,
-      messages: messages.value.map(({ role, content }) => ({
-        role,
-        content,
-      })),
-    })
+  const requestMessages = messages.value.map(({ role, content }) => ({
+    role,
+    content,
+  }))
 
-    conversationId.value = response.conversation_id ?? conversationId.value
-    const replyContent = response.reply.content?.trim()
-
-    const assistantMessage: ChatMessage = {
-      id: generateId('assistant'),
-      role: response.reply.role ?? 'assistant',
-      content: replyContent || '我已收到您的訊息。',
-    }
-
-    messages.value.push(assistantMessage)
-    renderMessage(assistantMessage)
-  } catch (err) {
-    errorMessage.value = resolveErrorMessage(err)
-    const fallbackMessage: ChatMessage = {
-      id: generateId('assistant'),
-      role: 'assistant',
-      content: '目前無法連線到 AI 助手，請稍後再試一次。',
-    }
-
-    messages.value.push(fallbackMessage)
-    renderMessage(fallbackMessage)
-  } finally {
-    isSending.value = false
+  const assistantMessage: ChatMessage = {
+    id: generateId('assistant'),
+    role: 'assistant',
+    content: '',
   }
+  messages.value.push(assistantMessage)
+  setDisplayedContent(assistantMessage.id, '')
+  await nextTick()
+  scrollMessagesToBottom()
+
+  abortActiveStream()
+  const abortController = new AbortController()
+  streamAbortController.value = abortController
+  streamingMessageId.value = assistantMessage.id
+
+  try {
+    for await (const event of streamChatWithAssistant(
+      {
+        conversation_id: conversationId.value,
+        messages: requestMessages,
+      },
+      { signal: abortController.signal },
+    )) {
+      const isFinal = await applyStreamEvent(event, assistantMessage)
+      if (isFinal) {
+        break
+      }
+    }
+
+    if (!assistantMessage.content.trim()) {
+      assistantMessage.content = '我已收到您的訊息。'
+      finalizeTypewriter(assistantMessage.id, assistantMessage.content)
+    }
+  } catch (err) {
+    if (isAbortError(err)) {
+      if (!assistantMessage.content.trim()) {
+        removeDisplayedContent(assistantMessage.id)
+        messages.value = messages.value.filter((item) => item.id !== assistantMessage.id)
+      } else {
+        finalizeTypewriter(assistantMessage.id, assistantMessage.content)
+      }
+    } else {
+      errorMessage.value = resolveErrorMessage(err)
+      assistantMessage.content = '目前無法連線到 AI 助手，請稍後再試一次。'
+      finalizeTypewriter(assistantMessage.id, assistantMessage.content)
+    }
+  } finally {
+    if (streamAbortController.value === abortController) {
+      streamAbortController.value = null
+    }
+    streamingMessageId.value = null
+    isSending.value = false
+    await nextTick()
+    scrollMessagesToBottom()
+  }
+}
+
+const isAbortError = (err: unknown): err is DOMException => {
+  return err instanceof DOMException && err.name === "AbortError"
 }
 
 const resolveErrorMessage = (err: unknown) => {
@@ -267,10 +471,7 @@ function generateId(prefix: string) {
 }
 
 onBeforeUnmount(() => {
-  typingTimers.forEach((timerId) => {
-    window.clearInterval(timerId)
-  })
-  typingTimers.clear()
+  abortActiveStream()
 })
 </script>
 

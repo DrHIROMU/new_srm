@@ -40,3 +40,41 @@ export interface ChatResponsePayload {
   usage?: Record<string, unknown> | null
   raw_response?: Record<string, unknown> | null
 }
+
+export type ChatStreamEvent =
+  | {
+      type: 'content.delta'
+      delta: string
+    }
+  | {
+      type: 'content.done'
+      content: string
+    }
+  | {
+      type: 'final'
+      conversation_id?: string | null
+      reply: ChatMessagePayload
+      context: ContextResultPayload[]
+      usage?: Record<string, unknown> | null
+      raw_response?: Record<string, unknown> | null
+      finish_reason?: string | null
+    }
+  | {
+      type: 'tool_calls.function.arguments.delta'
+      name: string
+      index: number
+      arguments: string
+      arguments_delta: string
+    }
+  | {
+      type: 'tool_calls.function.arguments.done'
+      name: string
+      index: number
+      arguments: string
+      parsed_arguments: unknown
+    }
+  | {
+      type: 'error'
+      status?: number
+      detail: string
+    }

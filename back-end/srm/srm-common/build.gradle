@@ -11,8 +11,6 @@ repositories {
 }
 
 dependencies {
-    // This module should have minimal dependencies.
-    // Add any truly core libraries if needed, for example, Lombok.
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 }
